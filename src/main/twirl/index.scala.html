@@ -1,0 +1,12 @@
+@(name: String, error: Boolean = false)
+<html>
+  <h1>@name</h1>
+  <form method="post" action="/login">
+    <input type="text" name="username">
+    <input type="password" name="password">
+    <button type="submit">Submit</button>
+    @if(error) {
+      <h1>Error</h1>
+    }
+  </form>
+</html>
