@@ -2,28 +2,28 @@ package dev.sampalmer.scrapbook.server
 
 import cats.Id
 import cats.data.Kleisli
-import cats.effect.Sync
+import cats.effect.{Async, Sync}
 import cats.implicits._
 import dev.sampalmer.scrapbook.auth.CookieStore
 import dev.sampalmer.scrapbook.routes.HomeRoutes.home
-import dev.sampalmer.scrapbook.routes.LoginRoutes.{UsernamePasswordCredentials, loginRoute}
-import dev.sampalmer.scrapbook.routes.TaskRoutes.taskRoutes
+import dev.sampalmer.scrapbook.routes.LoginRoutes.{UsernamePasswordCredentials, login, loginRoute}
+import dev.sampalmer.scrapbook.routes.UploadRoutes.uploadRoutes
 import dev.sampalmer.scrapbook.routes.VideoRoutes.videoRoutes
-import dev.sampalmer.scrapbook.tasks.TaskService
+import dev.sampalmer.scrapbook.service.{UploadService, VideoService}
+import dev.sampalmer.scrapbook.user.UserService.User
 import dev.sampalmer.scrapbook.user.UserStore
-import dev.sampalmer.scrapbook.user.UserService.{Role, User}
-import dev.sampalmer.scrapbook.video.VideoService
 import org.http4s.headers.`Content-Type`
+import org.http4s.twirl._
 import org.http4s.{EntityDecoder, Headers, HttpRoutes, MediaType, Request, Response, Status, UrlForm}
+import pureconfig.ConfigSource
 import pureconfig.generic.auto._
-import pureconfig.module.catseffect.loadConfigF
-import tsec.authentication.{AuthenticatedCookie, BackingStore, SecuredRequest, SecuredRequestHandler, SignedCookieAuthenticator, TSecAuthService, TSecCookieSettings}
-import tsec.authorization.BasicRBAC
+import pureconfig.module.catseffect.syntax.CatsEffectConfigSource
+import tsec.authentication.{AuthenticatedCookie, BackingStore, SecuredRequestHandler, SignedCookieAuthenticator, TSecCookieSettings}
 import tsec.mac.jca.{HMACSHA256, MacSigningKey}
 
+import java.nio.file.Paths
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
-import org.http4s.twirl._
 
 object ScrapbookServer {
   case class Config(users: List[UsernamePasswordCredentials])
@@ -57,18 +57,17 @@ object ScrapbookServer {
     def unauthorised: Request[F] => F[Response[F]] = _ => Sync[F].pure(unauthorisedPage)
 
     val secureRoutes: HttpRoutes[F] = SecuredRequestHandler(authenticator).liftService(
-      videoRoutes(VideoService()) <+> taskRoutes(TaskService()), unauthorised
+      uploadRoutes(UploadService[F]()) <+> videoRoutes(VideoService()), unauthorised
     )
-    val loginRoutes = loginRoute(authenticator, userCredentialStore.checkPassword)
+    val loginRoutes = loginRoute(authenticator, userCredentialStore.checkPassword) <+> login
 
 
     (home <+> loginRoutes <+> secureRoutes).orNotFound
   }
 
-  def app[F[_] : Sync]()(implicit entityDecoder: EntityDecoder[F, String], edu: EntityDecoder[F, UrlForm]): F[Kleisli[F, Request[F], Response[F]]] = {
+  def app[F[_] : Async]()(implicit entityDecoder: EntityDecoder[F, String], edu: EntityDecoder[F, UrlForm]): F[Kleisli[F, Request[F], Response[F]]] = {
     for {
-      config <- loadConfigF[F, Config]
-      userCredentialStore <- UserStore[F](config.users.head, config.users.tail: _*)
+      userCredentialStore <- UserStore[F]()
       finalHttpApp = routes[F](userCredentialStore, CookieStore.empty, VideoService())
     } yield finalHttpApp
   }

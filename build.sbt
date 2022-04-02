@@ -11,11 +11,6 @@ name := "scrapbook"
 version := "0.0.1-SNAPSHOT"
 scalaVersion := "2.13.8"
 
-lazy val scalaJs = (project in file("scala-js"))
-  .settings(
-    scalaJSUseMainModuleInitializer := true
-  ).enablePlugins(ScalaJSPlugin)
-
 lazy val root = (project in file("."))
   .settings(
 
@@ -34,7 +29,9 @@ lazy val root = (project in file("."))
       "com.github.pureconfig" %% "pureconfig-cats-effect" % pureConfigVersion,
       "io.chrisdavenport" %% "fuuid" % "0.8.0-M2",
       "dev.sampalmer" %% "aws-presigned-scala" % "0.1.0-SNAPSHOT",
-      "io.github.jmcardon" %% "tsec-http4s" % tsecV
+      "io.github.jmcardon" %% "tsec-http4s" % tsecV,
+      "org.tpolecat" %% "doobie-core"      % "1.0.0-RC1",
+      "org.tpolecat" %% "doobie-postgres"  % "1.0.0-RC1"
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.13.2" cross CrossVersion.full),
     addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1"),

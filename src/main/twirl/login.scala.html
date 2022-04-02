@@ -1,0 +1,17 @@
+@(name: String, error: Boolean = false)
+<html>
+  <head>
+    <link rel="shortcut icon" href="http://127.0.0.1:8081/favicon.ico">
+  </head>
+  <h1>@name</h1>
+
+  <script type="text/javascript" src="http://127.0.0.1:8081/main.js"></script>
+  <form method="post" action="/login">
+    <input type="text" name="username">
+    <input type="password" name="password">
+    <button type="submit">Submit</button>
+    @if(error) {
+      <h1>Error</h1>
+    }
+  </form>
+</html>

@@ -8,7 +8,7 @@ import org.http4s.server.middleware.Logger
 object Main extends IOApp {
   def run(args: List[String]) = {
     for {
-      app <- ScrapbookServer.app[IO]
+      app <- ScrapbookServer.app[IO]()
       loggingMiddleware = Logger.httpApp[IO](logHeaders = true, logBody = true)(app)
       server <-     EmberServerBuilder
         .default[IO]
