@@ -28,7 +28,7 @@ lazy val root = (project in file("."))
       "com.github.pureconfig" %% "pureconfig" % pureConfigVersion,
       "com.github.pureconfig" %% "pureconfig-cats-effect" % pureConfigVersion,
       "io.chrisdavenport" %% "fuuid" % "0.8.0-M2",
-      "dev.sampalmer" %% "aws-presigned-scala" % "0.1.0-SNAPSHOT",
+      "dev.sampalmer" %% "aws-presigned-scala" % "0.0.1",
       "io.github.jmcardon" %% "tsec-http4s" % tsecV,
       "org.tpolecat" %% "doobie-core"      % "1.0.0-RC1",
       "org.tpolecat" %% "doobie-postgres"  % "1.0.0-RC1"
