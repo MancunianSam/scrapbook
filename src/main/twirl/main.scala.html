@@ -1,0 +1,14 @@
+@import dev.sampalmer.scrapbook.server.ScrapbookServer.AppConfig
+@()(content: Html)
+<html>
+  <head>
+    <link rel="shortcut icon" href="http://127.0.0.1:8081/favicon.ico">
+    <script type="text/javascript" src="http://127.0.0.1:8081/main.js"></script>
+    <nav>
+      <a href="https://dev-m99urvq4.eu.auth0.com/v2/logout?client_id=50gUUkTuT7lN3A67aM77xMVdVk8fQ6QY&returnTo=http%3A%2F%2Flocalhost%3A8080%2Flogout">Logout</a> |
+    </nav>
+  </head>
+  <body>
+    @content
+  </body>
+</html>

@@ -1,74 +1,89 @@
 package dev.sampalmer.scrapbook.server
 
-import cats.Id
-import cats.data.Kleisli
-import cats.effect.{Async, Sync}
+import cats.data.{Kleisli, OptionT}
+import cats.effect.Async
+import cats.effect.std.Dispatcher
 import cats.implicits._
-import dev.sampalmer.scrapbook.auth.CookieStore
-import dev.sampalmer.scrapbook.routes.HomeRoutes.home
-import dev.sampalmer.scrapbook.routes.LoginRoutes.{UsernamePasswordCredentials, login, loginRoute}
-import dev.sampalmer.scrapbook.routes.UploadRoutes.uploadRoutes
-import dev.sampalmer.scrapbook.routes.VideoRoutes.videoRoutes
+import ciris.{ConfigValue, env}
+import dev.sampalmer.scrapbook.auth.AuthConfig
+import dev.sampalmer.scrapbook.db.VideoRepository
+import dev.sampalmer.scrapbook.routes.{LoginRoutes, UploadRoutes, VideoRoutes}
 import dev.sampalmer.scrapbook.service.{UploadService, VideoService}
-import dev.sampalmer.scrapbook.user.UserService.User
-import dev.sampalmer.scrapbook.user.UserStore
-import org.http4s.headers.`Content-Type`
-import org.http4s.twirl._
-import org.http4s.{EntityDecoder, Headers, HttpRoutes, MediaType, Request, Response, Status, UrlForm}
-import pureconfig.ConfigSource
-import pureconfig.generic.auto._
-import pureconfig.module.catseffect.syntax.CatsEffectConfigSource
-import tsec.authentication.{AuthenticatedCookie, BackingStore, SecuredRequestHandler, SignedCookieAuthenticator, TSecCookieSettings}
-import tsec.mac.jca.{HMACSHA256, MacSigningKey}
+import org.http4s._
+import org.http4s.dsl._
+import org.http4s.headers.Location
+import org.http4s.implicits.{http4sKleisliResponseSyntaxOptionT, http4sLiteralsSyntax}
+import org.http4s.server.Router
+import org.pac4j.core.config.Config
+import org.pac4j.core.profile.CommonProfile
+import org.pac4j.http4s._
 
-import java.nio.file.Paths
-import java.util.UUID
 import scala.concurrent.duration.DurationInt
 
 object ScrapbookServer {
-  case class Config(users: List[UsernamePasswordCredentials])
+  case class AppConfig(databasePassword: String, databasePort: Int, cookieSecret: String, clientSecret: String)
 
-  def routes[F[_] : Sync](
-              userCredentialStore: UserStore[F],
-              tokenStore: BackingStore[F, UUID, AuthenticatedCookie[HMACSHA256, UUID]],
-              videoService: VideoService[F])
-                         (implicit entityDecoder: EntityDecoder[F, String], entityDecoderUser: EntityDecoder[F, UrlForm])
+  def routes[F[_] <: AnyRef : Async](contextBuilder: (Request[F], Config) => Http4sWebContext[F],
+                                     videoService: VideoService[F],
+                                     uploadService: UploadService[F],
+                                     sessionConfig: SessionConfig,
+                                     authConfig: Config): Kleisli[F, Request[F], Response[F]] = {
+    val uploadRoutes: UploadRoutes[F] = UploadRoutes[F]()
+    val videoRoutes = VideoRoutes[F]()
+    val allRoutes = videoRoutes.routes(videoService) <+> uploadRoutes.routes(uploadService)
+    val root = LoginRoutes[F](authConfig, contextBuilder).routes()
+    val authedTrivial: AuthedRoutes[List[CommonProfile], F] =
+      Kleisli(_ => {
+        val dsl: Http4sDsl[F] = new Http4sDsl[F]{}
+        import dsl._
+        OptionT.liftF(Found(Location(uri"/")))
+      })
 
-              : Kleisli[F, Request[F], Response[F]] = {
-    val settings: TSecCookieSettings = TSecCookieSettings(
-      cookieName = "tsec-auth",
-      secure = false,
-      expiryDuration = 10.minutes, // Absolute expiration time
-      maxIdle = None // Rolling window expiration. Set this to a Finiteduration if you intend to have one
-    )
-
-    val key: MacSigningKey[HMACSHA256] = HMACSHA256.generateKey[Id]
-
-    val authenticator = SignedCookieAuthenticator[F, UUID, User, HMACSHA256](
-      settings,
-      tokenStore,
-      userCredentialStore.identityStore,
-      key
+    val loginPages: HttpRoutes[F] =
+      Router(
+        "oidc"     -> Session.sessionManagement[F](sessionConfig)
+          .compose(SecurityFilterMiddleware.securityFilter[F](authConfig, contextBuilder, Some("OidcClient"))).apply(authedTrivial)
       )
-    val unauthorisedPage = Response[F](Status.Unauthorized)
-      .withEntity(html.unauthorised("Not logged in error"))
-      .withHeaders(Headers(`Content-Type`(new MediaType("text", "html"))))
 
-    def unauthorised: Request[F] => F[Response[F]] = _ => Sync[F].pure(unauthorisedPage)
+    val authedProtectedPages: HttpRoutes[F] =
+      Session.sessionManagement[F](sessionConfig)
+        .compose(SecurityFilterMiddleware.securityFilter[F](authConfig, contextBuilder))(allRoutes)
 
-    val secureRoutes: HttpRoutes[F] = SecuredRequestHandler(authenticator).liftService(
-      uploadRoutes(UploadService[F]()) <+> videoRoutes(VideoService()), unauthorised
-    )
-    val loginRoutes = loginRoute(authenticator, userCredentialStore.checkPassword) <+> login
-
-
-    (home <+> loginRoutes <+> secureRoutes).orNotFound
+    Router(
+      "/login" -> (Session.sessionManagement[F](sessionConfig) _){ loginPages },
+      "/protected" -> authedProtectedPages,
+      "/" -> (Session.sessionManagement[F](sessionConfig) _) (root)
+    ).orNotFound
   }
 
-  def app[F[_] : Async]()(implicit entityDecoder: EntityDecoder[F, String], edu: EntityDecoder[F, UrlForm]): F[Kleisli[F, Request[F], Response[F]]] = {
+  def config[F[_] : Async]: ConfigValue[F, AppConfig] =
+    (
+      env("DATABASE_PASSWORD").as[String],
+      env("COOKIE_SECRET").as[String],
+      env("CLIENT_SECRET").as[String]
+      ).parMapN({
+      (password, cookieSecret, clientSecret) => AppConfig(password, 5432, cookieSecret, clientSecret)
+    })
+
+  def getSessionConfig(cookieSecret: String): SessionConfig = {
+    SessionConfig(
+      cookieName = "session",
+      mkCookie = ResponseCookie(_, _, path = Some("/")),
+      secret = cookieSecret,
+      maxAge = 5.minutes
+    )
+  }
+
+  def app[F[_] <: AnyRef : Async](dispatcher: Dispatcher[F]): F[Kleisli[F, Request[F], Response[F]]] = {
     for {
-      userCredentialStore <- UserStore[F]()
-      finalHttpApp = routes[F](userCredentialStore, CookieStore.empty, VideoService())
+      conf <- config.load[F]
+      authConfig <- AuthConfig[F](conf.clientSecret)
+      allRoutes = routes[F](
+        Http4sWebContext.withDispatcherInstance[F](dispatcher),
+        VideoService[F](VideoRepository(conf)), UploadService[F](),
+        getSessionConfig(conf.cookieSecret),
+        authConfig.build())
+      finalHttpApp <- Async[F].pure(allRoutes)
     } yield finalHttpApp
   }
 }

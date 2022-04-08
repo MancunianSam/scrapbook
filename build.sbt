@@ -25,13 +25,18 @@ lazy val root = (project in file("."))
       "org.typelevel"   %% "munit-cats-effect-3" % MunitCatsEffectVersion % Test,
       "ch.qos.logback"  %  "logback-classic"     % LogbackVersion         % Runtime,
       "org.scalameta"   %% "svm-subs"            % "20.2.0",
+      "is.cir" %% "ciris" % "2.3.2",
+      "org.pac4j" %% "http4s-pac4j" % "4.0.0",
+      "org.pac4j" % "pac4j-oidc" % "5.4.2",
+      "org.mindrot" % "jbcrypt" % "0.4",
       "com.github.pureconfig" %% "pureconfig" % pureConfigVersion,
       "com.github.pureconfig" %% "pureconfig-cats-effect" % pureConfigVersion,
       "io.chrisdavenport" %% "fuuid" % "0.8.0-M2",
       "dev.sampalmer" %% "aws-presigned-scala" % "0.0.1",
-      "io.github.jmcardon" %% "tsec-http4s" % tsecV,
       "org.tpolecat" %% "doobie-core"      % "1.0.0-RC1",
-      "org.tpolecat" %% "doobie-postgres"  % "1.0.0-RC1"
+      "org.tpolecat" %% "doobie-postgres"  % "1.0.0-RC1",
+      "org.mockito" %% "mockito-scala" % "1.16.39" % Test
+
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.13.2" cross CrossVersion.full),
     addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1"),
