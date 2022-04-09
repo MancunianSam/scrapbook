@@ -5,11 +5,15 @@ val LogbackVersion = "1.2.10"
 val MunitCatsEffectVersion = "1.0.7"
 val tsecV = "0.4.0"
 val pureConfigVersion = "0.17.1"
+val testcontainersScalaVersion = "0.40.3"
 
 organization := "dev.sampalmer"
 name := "scrapbook"
 version := "0.0.1-SNAPSHOT"
 scalaVersion := "2.13.8"
+
+val fakeKey = "MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGAevf7LtP7j+JQL+rPZMy+uh+3yVA4kaaDHDycw6gPelouresqHPRR7vVinjmgWt/TVuMBjEgTg5r7x073aSFZHlibUSv8oi9fj5F7GF5Jipm3SKfHwdS3fwZdWUB/kqKUgASBXPiUQjI2LKYSUkSnrjT0YqYOr7iD+MrvuQCGArsCAwEAAQKBgDSxXKY1Wh/O15Og59wGzFfPTZ7rTEJFevs3kelZc8B3Mnd+RN6BZzahWe/5O5iVPueFgN1O6WXEnM1MLkKTcq8xHwB4SyyJYXKCuD2UsxutXHtN59HkBlpzsIyXehIGr3p/QAWHpSdxOGcqf1nXlAluS32NM6kk3J/Hx/MuB8NJAkEAt1ZY2jdlkZfLmQJ+eJZbJ9S7chdqednUhyjo68I3yJOt7im6/ZVo5CumT51M3BpBZJloklW9ri2YA7tKgDSQVQJBAKu0jTJQoOmtzfpu6tsE3m/xHNXVrnn1MIt73i+KgI6QqGKCbv+lv/fxho6ydXFSrro7Yf3CrZNgvKTShNEmFs8CQGSnFyjWeQCxoaljYSO7CFiZxj8g8+fp23BI2Xd1rUKFMVwrtOk7edaq0CetaGD+WSBtyKduQzC4/1gtHv273fECQQCiDvwBFCZ7x0YUauGRLAxBfUFo9ZACnY9e5t8y4bcqV5AFwfO/qBICk1wbjIXaGl69eNSo7DhlVDVYHzWqLRfzAkEAoJHJKvOffokpD+BOVV3/bT6hOcUgXMdgDDTX8JoUbsgLFP0t5Ao49CLVHfj1kRyuAlyiBkpuT29MIwXuYJtk3w=="
+
 
 lazy val root = (project in file("."))
   .settings(
@@ -29,14 +33,14 @@ lazy val root = (project in file("."))
       "org.pac4j" %% "http4s-pac4j" % "4.0.0",
       "org.pac4j" % "pac4j-oidc" % "5.4.2",
       "org.mindrot" % "jbcrypt" % "0.4",
-      "com.github.pureconfig" %% "pureconfig" % pureConfigVersion,
-      "com.github.pureconfig" %% "pureconfig-cats-effect" % pureConfigVersion,
       "io.chrisdavenport" %% "fuuid" % "0.8.0-M2",
-      "dev.sampalmer" %% "aws-presigned-scala" % "0.0.1",
+      "dev.sampalmer" %% "aws-presigned-scala" % "0.0.2",
       "org.tpolecat" %% "doobie-core"      % "1.0.0-RC1",
       "org.tpolecat" %% "doobie-postgres"  % "1.0.0-RC1",
-      "org.mockito" %% "mockito-scala" % "1.16.39" % Test
-
+      "org.mockito" %% "mockito-scala" % "1.16.39" % Test,
+      "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test,
+      "com.dimafeng" %% "testcontainers-scala-postgresql" % testcontainersScalaVersion % Test,
+      "com.dimafeng" %% "testcontainers-scala-munit" % testcontainersScalaVersion % Test
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.13.2" cross CrossVersion.full),
     addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1"),
@@ -44,4 +48,4 @@ lazy val root = (project in file("."))
   ).enablePlugins(SbtTwirl)
 
 Test / fork := true
-Test / envVars := Map("AWS_ACCESS_KEY_ID" -> "test", "AWS_SECRET_ACCESS_KEY" -> "test")
+Test / envVars := Map("AWS_ACCESS_KEY_ID" -> "test", "AWS_SECRET_ACCESS_KEY" -> "test", "PRIVATE_KEY" -> fakeKey, "KEY_ID" -> "test")

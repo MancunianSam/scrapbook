@@ -4,6 +4,7 @@ import cats.effect.Async
 import cats.implicits._
 import dev.sampalmer.presigned.cloudfront.Cloudfront
 import dev.sampalmer.scrapbook.db.VideoRepository
+import dev.sampalmer.scrapbook.server.ScrapbookServer.AppConfig
 import dev.sampalmer.scrapbook.service.VideoService.Video
 import io.chrisdavenport.fuuid.FUUID
 
@@ -17,10 +18,11 @@ object VideoService {
   val cloudfrontUrl = "https://d14agbynhxhme0.cloudfront.net"
   case class Video(url: String, name: String)
 
-  def apply[F[_] : Async](videoRepository: VideoRepository[F]): VideoService[F] = new VideoService[F] {
+  def apply[F[_] : Async](appConfig: AppConfig): VideoService[F] = new VideoService[F] {
+    val videoRepository: VideoRepository[F] = VideoRepository[F](appConfig)
     override def get(userId: UUID, id: FUUID): F[Video] = for {
       videoRow <- videoRepository.getVideo(id)
-      url <- Cloudfront.getSignedUrl[F](s"$cloudfrontUrl/${id.show}", 3600)
+      url <- Cloudfront[F](appConfig.signingConfig.privateKey, appConfig.signingConfig.keyId).getSignedUrl(s"$cloudfrontUrl/${id.show}", 3600)
     } yield Video(url, videoRow.filename)
   }
 }

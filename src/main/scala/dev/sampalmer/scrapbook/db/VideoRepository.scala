@@ -19,7 +19,7 @@ object VideoRepository {
   case class VideoRow(id: String, filename: String)
   def apply[F[_]: Async](config: AppConfig)(implicit F: MonadError[F, Throwable]) = new VideoRepository[F] {
     override def getVideo(id: FUUID): F[VideoRow] = {
-      val xa = transactionManager(config.databasePassword, config.databasePort)
+      val xa = transactionManager(config.dbConfig)
       val sql = sql"SELECT id, filename from videos where id = ${id.show}::uuid"
       for {
         videoList: List[VideoRow] <- sql.query[VideoRow]

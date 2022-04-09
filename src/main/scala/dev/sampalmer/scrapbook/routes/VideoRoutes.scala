@@ -27,8 +27,6 @@ object VideoRoutes {
             resp <- videoService.get(UUID.randomUUID(), uuid)
           } yield Ok(html.getVideo(resp))
         }
-      case req =>
-        Ok(html.getVideo(Video("", "")))
     }
   }
 }

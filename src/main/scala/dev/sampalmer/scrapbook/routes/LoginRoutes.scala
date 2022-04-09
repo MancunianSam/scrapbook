@@ -24,10 +24,7 @@ object LoginRoutes {
     val callbackService = new CallbackService[F](authConfig, contextBuilder)
 
     override def routes(): HttpRoutes[F] =
-
       HttpRoutes.of[F] {
-        case GET -> Root =>
-          Ok(html.root("bob"))
         case req@GET -> Root / "callback" =>
           callbackService.callback(req)
         case req@POST -> Root / "callback" =>
