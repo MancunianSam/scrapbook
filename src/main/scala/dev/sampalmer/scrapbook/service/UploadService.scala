@@ -18,7 +18,7 @@ object UploadService {
     override def uploadUrl(): F[URL] =
       for {
         uuid <- FUUID.randomFUUID[F]
-        url <- S3.getPresignedUploadUrl[F]("sam-scrapbook-files", uuid.toString, Duration.ofMinutes(60))
+        url <- S3[F]().getPresignedUploadUrl("sam-scrapbook-files", uuid.toString, Duration.ofMinutes(60))
       } yield url
   }
 }
