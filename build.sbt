@@ -48,4 +48,4 @@ lazy val root = (project in file("."))
   ).enablePlugins(SbtTwirl)
 
 Test / fork := true
-Test / envVars := Map("AWS_ACCESS_KEY_ID" -> "test", "AWS_SECRET_ACCESS_KEY" -> "test", "PRIVATE_KEY" -> fakeKey, "KEY_ID" -> "test")
+Test / envVars := Map("AWS_ACCESS_KEY_ID" -> "test", "AWS_SECRET_ACCESS_KEY" -> "test", "PRIVATE_KEY" -> fakeKey, "KEY_ID" -> "test", "AWS_REGION" -> "eu-west-2")
