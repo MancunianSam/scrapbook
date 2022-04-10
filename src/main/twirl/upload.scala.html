@@ -1,12 +1,11 @@
-@(url: String)
+@(token: String)
 <html>
   <head>
     <link rel="shortcut icon" href="http://127.0.0.1:8081/favicon.ico">
   </head>
+  <input type="hidden" value="@token">
   <script type="text/javascript" src="http://127.0.0.1:8081/main.js"></script>
-  <input type="hidden" id="url" value="@url">
   <div id="hello"></div>
-  <input type="hidden" value="@url">
   <input type="file" id="file">
   <button id="click">Click</button>
 </html>

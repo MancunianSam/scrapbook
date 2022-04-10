@@ -40,8 +40,8 @@ class VideoSpec extends CatsEffectSuite with TestContainerForAll {
       case postgres: PostgreSQLContainer =>
         val dbConfig = DbConfig(postgres.databaseName, postgres.username, postgres.password, postgres.mappedPort(5432))
         val xa = transactionManager[IO](dbConfig)
-        val create = sql"create table videos (id uuid, filename varchar(255))".update.run
-        val insert = sql"insert into videos (id, filename) values ('e3ad334e-ac4f-47ec-8f3e-f36a79821c6d','test');".update.run
+        val create = sql"create table videos (id uuid, filename varchar(255), notes varchar(1000))".update.run
+        val insert = sql"insert into videos (id, filename, notes) values ('e3ad334e-ac4f-47ec-8f3e-f36a79821c6d','test', 'test');".update.run
         (create, insert).mapN(_ + _).transact(xa).unsafeRunSync()
     }
     super.afterContainersStart(containers)
